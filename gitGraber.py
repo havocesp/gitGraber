@@ -140,11 +140,11 @@ def notifyTelegram(message):
     requests.post(telegramUrl, json={'text': message, 'chat_id': config.TELEGRAM_CONFIG.get("chat_id")})
 
 def writeToWordlist(content, wordlist):
-    f = open(wordlist, 'a+')
-    s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-    filename = content.split('/')[-1]
-    if s.find(bytes(filename,'utf-8')) == -1:
-        f.write(filename + '\n')
+    with open(wordlist, 'a+') as f:
+        s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        filename = content.split('/')[-1]
+        if s.find(bytes(filename,'utf-8')) == -1:
+            f.write(filename + '\n')
 
 def displayResults(result, tokenResult, rawGitUrl, urlInfos):
     possibleTokenString = '[!] POSSIBLE '+tokenResult[result]+' TOKEN FOUND (keyword used:'+githubQuery+')'
