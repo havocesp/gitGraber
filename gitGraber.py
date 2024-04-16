@@ -140,11 +140,11 @@ def notifyTelegram(message):
     requests.post(telegramUrl, json={'text': message, 'chat_id': config.TELEGRAM_CONFIG.get("chat_id")})
 
 def writeToWordlist(content, wordlist):
-    f = open(wordlist, 'a+')
-    s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-    filename = content.split('/')[-1]
-    if s.find(bytes(filename,'utf-8')) == -1:
-        f.write(filename + '\n')
+    with open(wordlist, 'a+') as f:
+        s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+        filename = content.split('/')[-1]
+        if s.find(bytes(filename,'utf-8')) == -1:
+            f.write(filename + '\n')
 
 def displayResults(result, tokenResult, rawGitUrl, urlInfos):
     possibleTokenString = '[!] POSSIBLE '+tokenResult[result]+' TOKEN FOUND (keyword used:'+githubQuery+')'
@@ -168,67 +168,67 @@ def displayResults(result, tokenResult, rawGitUrl, urlInfos):
 def parseResults(content, limit_days=None):
     data = json.loads(content)
     contentRaw = {}
-    f = open(config.GITHUB_URL_FILE, 'a+', encoding='utf-8')
-    try:
-        for item in data['items']:
-            gitUrl = item['url']
-            repoName = item['repository']['full_name']
-            orgUrl = item['repository']['owner']['organizations_url']
-            #Parse JSON to get info about repository
-            response = doRequestGitHub(gitUrl)
-            rawUrl = json.loads(response.text)
-            rawGitUrl = rawUrl['download_url']
+    with open(config.GITHUB_URL_FILE, 'a+', encoding='utf-8') as f:
+        try:
+            for item in data['items']:
+                gitUrl = item['url']
+                repoName = item['repository']['full_name']
+                orgUrl = item['repository']['owner']['organizations_url']
+                #Parse JSON to get info about repository
+                response = doRequestGitHub(gitUrl)
+                rawUrl = json.loads(response.text)
+                rawGitUrl = rawUrl['download_url']
           
-            #Parse JSON to get info about organizations
-            if orgUrl not in checkedOrgs.keys():
-                checkedOrgs[orgUrl] = []
-                response = doRequestGitHub(orgUrl, True)
-                orgData = json.loads(response.text)
-                for org in orgData:
-                    checkedOrgs[orgUrl].append(org['login'])
-            
-            #Request to extract data about repository and user
-            commitHash = gitUrl.split('ref=')[1]
-            commitUrl = config.GITHUB_API_COMMIT_URL+repoName+'/commits/'+commitHash
-            response = doRequestGitHub(commitUrl, True)
-            commitData = json.loads(response.text)
-            commitDate = commitData['commit']['author']['date']
-            
-            #Compare the current date and date of commit
-            currentTimestamp = int(time.time())
-            timestampCommit = int(time.mktime(datetime.strptime(commitDate, '%Y-%m-%dT%H:%M:%SZ').timetuple()))
-            compareCommitDate = (currentTimestamp - timestampCommit)/3600
+                #Parse JSON to get info about organizations
+                if orgUrl not in checkedOrgs.keys():
+                    checkedOrgs[orgUrl] = []
+                    response = doRequestGitHub(orgUrl, True)
+                    orgData = json.loads(response.text)
+                    for org in orgData:
+                        checkedOrgs[orgUrl].append(org['login'])
+                
+                #Request to extract data about repository and user
+                commitHash = gitUrl.split('ref=')[1]
+                commitUrl = config.GITHUB_API_COMMIT_URL+repoName+'/commits/'+commitHash
+                response = doRequestGitHub(commitUrl, True)
+                commitData = json.loads(response.text)
+                commitDate = commitData['commit']['author']['date']
+                
+                #Compare the current date and date of commit
+                currentTimestamp = int(time.time())
+                timestampCommit = int(time.mktime(datetime.strptime(commitDate, '%Y-%m-%dT%H:%M:%SZ').timetuple()))
+                compareCommitDate = (currentTimestamp - timestampCommit)/3600
            
-            # Check if the commit is within the user-specified limit
-            if limit_days is not None and compareCommitDate > limit_days * 24:
-                continue
+                # Check if the commit is within the user-specified limit
+                if limit_days is not None and compareCommitDate > limit_days * 24:
+                    continue
 
-            #Conversion in day if the commit date is > 24h
-            if compareCommitDate > 24:
-              compareCommitDate = round(compareCommitDate/24)
-              compareCommitDate = '(' + str(compareCommitDate)+' days ago)'
-            else:
-             compareCommitDate = round(compareCommitDate)
-             compareCommitDate = '(' + str(compareCommitDate)+' hours ago)'
-            
-            #Parse JSON to get the user
-            commitAuthor = commitData['commit']['author']['email']
-            
-            s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
-            if s.find(bytes(rawGitUrl,'utf-8')) == -1:
-               f.write(rawGitUrl + '\n')
-               contentRaw[rawGitUrl] = []
-               contentRaw[rawGitUrl].append(doRequestGitHub(rawGitUrl))
-               contentRaw[rawGitUrl].append(config.GITHUB_BASE_URL+'/'+repoName)
-               contentRaw[rawGitUrl].append(compareCommitDate)
-               contentRaw[rawGitUrl].append(commitDate)
-               contentRaw[rawGitUrl].append(commitAuthor)
-               contentRaw[rawGitUrl].append(checkedOrgs[orgUrl])
-        return contentRaw
+                #Conversion in day if the commit date is > 24h
+                if compareCommitDate > 24:
+                  compareCommitDate = round(compareCommitDate/24)
+                  compareCommitDate = '(' + str(compareCommitDate)+' days ago)'
+                else:
+                 compareCommitDate = round(compareCommitDate)
+                 compareCommitDate = '(' + str(compareCommitDate)+' hours ago)'
+                
+                #Parse JSON to get the user
+                commitAuthor = commitData['commit']['author']['email']
+                
+                s = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
+                if s.find(bytes(rawGitUrl,'utf-8')) == -1:
+                   f.write(rawGitUrl + '\n')
+                   contentRaw[rawGitUrl] = []
+                   contentRaw[rawGitUrl].append(doRequestGitHub(rawGitUrl))
+                   contentRaw[rawGitUrl].append(config.GITHUB_BASE_URL+'/'+repoName)
+                   contentRaw[rawGitUrl].append(compareCommitDate)
+                   contentRaw[rawGitUrl].append(commitDate)
+                   contentRaw[rawGitUrl].append(commitAuthor)
+                   contentRaw[rawGitUrl].append(checkedOrgs[orgUrl])
+            return contentRaw
 
-    except Exception as e:
-        print('Exception '+str(e))
-        pass
+        except Exception as e:
+            print('Exception '+str(e))
+            pass
 
 # Transform the config github token list to a dict of key values
 def initGithubToken():
