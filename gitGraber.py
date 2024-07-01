@@ -14,11 +14,11 @@ import time
 import urllib.parse
 from functools import partial
 from datetime import datetime
-from pprint import pprint
 from termcolor import colored
 from urllib.parse import urlparse
 from multiprocessing.dummy import Pool
 from crontab import CronTab
+from security import safe_requests
 
 def getFilenameForQuery(query):
     if query:
@@ -283,7 +283,7 @@ def doRequestGitHub(url, authd=True, verbose=False):
             token = getGithubToken(url)
             headers['Authorization'] = 'token '+ token
         try:
-            response = requests.get(url, headers=headers)
+            response = safe_requests.get(url, headers=headers)
             nbMaxTry = nbMaxTry - 1
             if verbose:
                 print('[i] Status code : ' + str(response.status_code))
