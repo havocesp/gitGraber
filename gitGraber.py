@@ -123,20 +123,20 @@ def notify(platform, message):
             exit()
         data = {'content': message}
         headers = {"Content-Type": "application/json"}
-        requests.post(config.DISCORD_WEBHOOKURL, data=json.dumps(data), headers=headers)
+        requests.post(config.DISCORD_WEBHOOKURL, data=json.dumps(data), headers=headers, timeout=60)
 
     elif platform == "slack":
         if not config.SLACK_WEBHOOKURL:
             print('Please define Slack Webhook URL to enable notifications')
             exit()
-        requests.post(config.SLACK_WEBHOOKURL, json={'text': ':new:' + message})
+        requests.post(config.SLACK_WEBHOOKURL, json={'text': ':new:' + message}, timeout=60)
 
     elif platform == "telegram":
         if not config.TELEGRAM_CONFIG or not config.TELEGRAM_CONFIG.get("token") or not config.TELEGRAM_CONFIG.get("chat_id"):
             print('Please define Telegram config to enable notifications')
             exit()
         telegramUrl = "https://api.telegram.org/bot{}/sendMessage".format(config.TELEGRAM_CONFIG.get("token"))
-        requests.post(telegramUrl, json={'text': message, 'chat_id': config.TELEGRAM_CONFIG.get("chat_id")})
+        requests.post(telegramUrl, json={'text': message, 'chat_id': config.TELEGRAM_CONFIG.get("chat_id")}, timeout=60)
 
 def displayResults(result, tokenResult, rawGitUrl, urlInfos):
     possibleTokenString = '[!] POSSIBLE '+tokenResult[result]+' TOKEN FOUND (keyword used:'+githubQuery+')'
@@ -275,7 +275,7 @@ def doRequestGitHub(url, authd=True, verbose=False):
             token = getGithubToken(url)
             headers['Authorization'] = 'token '+ token
         try:
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=60)
             nbMaxTry = nbMaxTry - 1
             if verbose:
                 print('[i] Status code : ' + str(response.status_code))
